@@ -24,9 +24,7 @@ router.post('/register', async (req, res) => {
     await waha.createSession(sessionName);
     await waha.startSession(sessionName);
 
-    // Wire up webhook so WAHA notifies this app
-    const webhookUrl = `${process.env.APP_URL}/webhooks/waha`;
-    await waha.setWebhook(sessionName, webhookUrl);
+    // Webhook is configured globally via WHATSAPP_HOOK_URL env var on WAHA service
 
     logger.info({ email, sessionName }, 'CSM registered');
     return res.json({ csmId: csm.id, sessionName });
