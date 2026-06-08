@@ -12,10 +12,7 @@ const supabase = createClient(
 async function createCSM({ name, email, phone, wahaSession }) {
   const { data, error } = await supabase
     .from('csms')
-    .upsert(
-      { name, email, phone, waha_session: wahaSession },
-      { onConflict: 'waha_session', ignoreDuplicates: false }
-    )
+    .insert({ name, email, phone, waha_session: wahaSession })
     .select()
     .single();
   if (error) throw new Error(`createCSM: ${error.message}`);
@@ -47,13 +44,15 @@ async function updateCSMStatus(wahaSession, status) {
     .eq('waha_session', wahaSession);
 }
 
-async function updateCSMSlack(csmId, { slackUserId, managerSlackId, managerName }) {
+async function updateCSMSlack(csmId, { slackUserId, managerSlackId, managerName, role, reportees }) {
   const { error } = await supabase
     .from('csms')
     .update({
       slack_user_id: slackUserId,
       manager_slack_id: managerSlackId || null,
-      manager_name: managerName || null
+      manager_name: managerName || null,
+      role: role || 'csm',
+      reportees: reportees || []
     })
     .eq('id', csmId);
   if (error) throw new Error(`updateCSMSlack: ${error.message}`);
@@ -85,6 +84,15 @@ async function getMonitoredGroups(csmId) {
     .eq('csm_id', csmId)
     .eq('active', true);
   return data || [];
+}
+
+async function deactivateGroup(csmId, groupJid) {
+  const { error } = await supabase
+    .from('monitored_groups')
+    .update({ active: false })
+    .eq('csm_id', csmId)
+    .eq('group_jid', groupJid);
+  if (error) throw new Error(`deactivateGroup: ${error.message}`);
 }
 
 async function isGroupMonitored(csmId, groupJid) {
@@ -195,7 +203,7 @@ async function markSLAAlerted(messageId, type) {
 module.exports = {
   createCSM, getCSMBySession, getCSMById,
   updateCSMStatus, updateCSMSlack, getAllCSMs,
-  saveMonitoredGroups, getMonitoredGroups, isGroupMonitored,
+  saveMonitoredGroups, getMonitoredGroups, isGroupMonitored, deactivateGroup,
   saveMessage, markMessageAnswered, getPendingMessages, getRecentMessagesForCSM,
   createSLATimer, markSLAAlerted
 };

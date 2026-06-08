@@ -82,6 +82,100 @@
 
     .empty { padding: 48px; text-align: center; color: #bbb; font-size: 14px; }
 
+    /* Groups section */
+    .groups-section {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .groups-header {
+      padding: 16px 22px; border-bottom: 1px solid #f0f0f0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .groups-header h2 { font-size: 16px; font-weight: 700; }
+    .btn-add-group {
+      padding: 7px 16px; background: #25d366; color: #fff;
+      border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-add-group:hover { background: #1fba59; }
+    .groups-body { padding: 12px 22px 16px; }
+    .groups-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .group-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 12px 7px 14px; background: #f0fff6;
+      border: 1.5px solid #b2dfcb; border-radius: 20px;
+      font-size: 13px; font-weight: 500; color: #1a1a2e;
+    }
+    .group-chip-remove {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: none; background: #b2dfcb; color: #155724;
+      font-size: 14px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .group-chip-remove:hover { background: #fde8e8; color: #c62828; border-color: #fde8e8; }
+    .groups-empty { padding: 16px 0; color: #aaa; font-size: 14px; }
+
+    /* Add Groups Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px;
+      width: 480px; max-width: calc(100vw - 32px);
+      max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+    }
+    .modal-head {
+      padding: 20px 24px 16px; display: flex;
+      justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .modal-head h3 { font-size: 17px; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: #f5f5f5; color: #666; font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: #e0e0e0; }
+    .modal-search-wrap { padding: 14px 24px 8px; }
+    .modal-search {
+      width: 100%; padding: 9px 14px; border: 1.5px solid #e0e0e0;
+      border-radius: 9px; font-size: 14px; outline: none;
+    }
+    .modal-search:focus { border-color: #25d366; }
+    .modal-group-list { flex: 1; overflow-y: auto; padding: 4px 0 8px; }
+    .modal-group-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 24px; cursor: pointer; transition: background 0.1s;
+    }
+    .modal-group-item:hover:not(.already) { background: #f9fff9; }
+    .modal-group-item.already { opacity: 0.45; cursor: default; }
+    .modal-group-item input { width: 16px; height: 16px; accent-color: #25d366; cursor: pointer; }
+    .modal-group-item.already input { cursor: default; }
+    .modal-group-item-name { font-size: 14px; color: #333; flex: 1; }
+    .modal-already-tag { font-size: 11px; color: #888; font-weight: 500; }
+    .modal-empty { padding: 32px 24px; text-align: center; color: #bbb; font-size: 14px; }
+    .modal-foot {
+      padding: 14px 24px; border-top: 1px solid #f0f0f0;
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    .btn-cancel {
+      padding: 9px 20px; border: 1.5px solid #e0e0e0;
+      border-radius: 9px; background: #fff; font-size: 14px; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #f5f5f5; }
+    .btn-add-selected {
+      padding: 9px 20px; background: #25d366; color: #fff;
+      border: none; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-add-selected:hover { background: #1fba59; }
+    .btn-add-selected:disabled { background: #ccc; cursor: not-allowed; }
+
     @media (max-width: 600px) {
       .topbar { padding: 12px 16px; }
       .main { padding: 16px 12px; }
@@ -111,6 +205,19 @@
       <div class="stat-card accent"><div class="stat-label">Bugs</div><div class="stat-value" id="stat-bugs">—</div></div>
     </div>
 
+    <!-- Monitored Groups -->
+    <div class="groups-section">
+      <div class="groups-header">
+        <h2>Monitored Groups</h2>
+        <button class="btn-add-group" onclick="openAddGroups()">+ Add Group</button>
+      </div>
+      <div class="groups-body">
+        <div class="groups-grid" id="groups-grid">
+          <div class="groups-empty">Loading groups…</div>
+        </div>
+      </div>
+    </div>
+
     <div class="filters">
       <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
       <button class="filter-btn" onclick="setFilter('pending', this)">⏳ Pending</button>
@@ -130,9 +237,31 @@
     </div>
   </div>
 
+  <!-- Add Groups Modal -->
+  <div class="modal-overlay" id="add-groups-modal" onclick="handleModalBackdrop(event)">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Add Groups to Monitor</h3>
+        <button class="modal-close" onclick="closeAddGroups()">×</button>
+      </div>
+      <div class="modal-search-wrap">
+        <input class="modal-search" id="modal-search" type="text" placeholder="Search groups…" oninput="filterModalGroups()" />
+      </div>
+      <div class="modal-group-list" id="modal-group-list">
+        <div class="modal-empty">Loading your WhatsApp groups…</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="closeAddGroups()">Cancel</button>
+        <button class="btn-add-selected" id="btn-add-selected" onclick="addSelectedGroups()" disabled>Add Selected</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   let allMessages = [];
   let activeFilter = 'all';
+  let currentGroups = [];       // actively monitored groups
+  let availableGroups = [];     // all WAHA groups (with already_monitored flag)
 
   const csmId = new URLSearchParams(location.search).get('csm');
   if (!csmId) {
@@ -151,6 +280,10 @@
       const s = data.csm.status;
       badge.textContent = s === 'connected' ? '🟢 Connected' : s === 'reconnecting' ? '🟡 Reconnecting' : '🔴 Disconnected';
       badge.className = 'status-badge ' + (s === 'connected' ? 'badge-connected' : s === 'reconnecting' ? 'badge-reconnecting' : 'badge-disconnected');
+
+      // Groups
+      currentGroups = data.groups || [];
+      renderGroups();
 
       // Stats
       document.getElementById('stat-total').textContent       = data.stats.total;
@@ -215,6 +348,117 @@
       </table>
     `;
   }
+
+  // ── Group management ────────────────────────────────────────────────────────
+
+  function renderGroups() {
+    const grid = document.getElementById('groups-grid');
+    if (!currentGroups.length) {
+      grid.innerHTML = '<div class="groups-empty">No groups monitored yet. Click "+ Add Group" to start.</div>';
+      return;
+    }
+    grid.innerHTML = currentGroups.map(g => `
+      <div class="group-chip" id="chip-${CSS.escape(g.group_jid)}">
+        🟢 ${esc(g.group_name)}
+        <button class="group-chip-remove" title="Stop monitoring" onclick="removeGroup('${esc(g.group_jid)}', '${esc(g.group_name)}')">×</button>
+      </div>
+    `).join('');
+  }
+
+  async function removeGroup(groupJid, groupName) {
+    if (!confirm(`Stop monitoring "${groupName}"?\n\nExisting message history is kept.`)) return;
+    try {
+      const res = await fetch('/api/dashboard/' + csmId + '/groups', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupJid })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      currentGroups = currentGroups.filter(g => g.group_jid !== groupJid);
+      renderGroups();
+    } catch (err) {
+      alert('Could not remove group: ' + err.message);
+    }
+  }
+
+  async function openAddGroups() {
+    document.getElementById('add-groups-modal').classList.add('open');
+    document.getElementById('modal-search').value = '';
+    document.getElementById('modal-group-list').innerHTML = '<div class="modal-empty">Loading your WhatsApp groups…</div>';
+    document.getElementById('btn-add-selected').disabled = true;
+
+    try {
+      const res = await fetch('/api/dashboard/' + csmId + '/groups/available');
+      if (!res.ok) throw new Error((await res.json()).error);
+      availableGroups = await res.json();
+      renderModalGroups(availableGroups);
+    } catch (err) {
+      document.getElementById('modal-group-list').innerHTML =
+        `<div class="modal-empty">⚠️ Could not load groups: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function closeAddGroups() {
+    document.getElementById('add-groups-modal').classList.remove('open');
+  }
+
+  function handleModalBackdrop(e) {
+    if (e.target === document.getElementById('add-groups-modal')) closeAddGroups();
+  }
+
+  function filterModalGroups() {
+    const q = document.getElementById('modal-search').value.toLowerCase();
+    renderModalGroups(q ? availableGroups.filter(g => g.group_name.toLowerCase().includes(q)) : availableGroups);
+  }
+
+  function renderModalGroups(groups) {
+    const list = document.getElementById('modal-group-list');
+    if (!groups.length) {
+      list.innerHTML = '<div class="modal-empty">No groups found.</div>';
+      return;
+    }
+    list.innerHTML = groups.map(g => `
+      <label class="modal-group-item ${g.already_monitored ? 'already' : ''}">
+        <input type="checkbox" value="${esc(g.group_jid)}" data-name="${esc(g.group_name)}"
+          ${g.already_monitored ? 'checked disabled' : ''}
+          onchange="updateAddBtn()" />
+        <span class="modal-group-item-name">${esc(g.group_name)}</span>
+        ${g.already_monitored ? '<span class="modal-already-tag">Already monitoring</span>' : ''}
+      </label>
+    `).join('');
+  }
+
+  function updateAddBtn() {
+    const anyChecked = [...document.querySelectorAll('#modal-group-list input:not([disabled]):checked')].length > 0;
+    document.getElementById('btn-add-selected').disabled = !anyChecked;
+  }
+
+  async function addSelectedGroups() {
+    const checked = [...document.querySelectorAll('#modal-group-list input:not([disabled]):checked')];
+    if (!checked.length) return;
+
+    const groups = checked.map(cb => ({ group_jid: cb.value, group_name: cb.dataset.name }));
+    const btn = document.getElementById('btn-add-selected');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+
+    try {
+      const res = await fetch('/api/dashboard/' + csmId + '/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groups })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      closeAddGroups();
+      await loadData(); // refresh everything
+    } catch (err) {
+      alert('Could not add groups: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Add Selected';
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
 
   function toIST(iso) {
     return new Date(iso).toLocaleString('en-IN', {

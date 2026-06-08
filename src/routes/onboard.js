@@ -5,130 +5,115 @@ const db = require('../db/supabase');
 const waha = require('../waha/client');
 const logger = require('../logger');
 
-/**
- * GET /api/onboard/debug
- * Shows raw WAHA state — use this to diagnose issues
- */
-router.get('/debug', async (_req, res) => {
-  const raw = await waha.getRawSession('default');
-  const status = raw ? raw.status : 'NOT_FOUND';
-  res.json({ status, raw });
-});
-
-/**
- * POST /api/onboard/register
- * Smart session management — never blindly deletes, handles every state.
- */
+// Step 1 — Register CSM and create WAHA session
+// POST /api/onboard/register
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    if (!name || !email || !phone)
-      return res.status(400).json({ error: 'name, email and phone required' });
+    if (!name || !email || !phone) {
+      return res.status(400).json({ error: 'name, email, and phone are required' });
+    }
 
-    const sessionName = 'default';
+    // Build a safe session name from email prefix
+    const sessionName = 'csm_' + email
+      .split('@')[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 20);
+
+    // Create CSM record in DB
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
-    const status = await waha.getSessionStatus(sessionName);
 
-    logger.info({ email, status }, 'Register — WAHA session state');
+    // Create and start WAHA session
+    await waha.createSession(sessionName);
+    await waha.startSession(sessionName);
 
-    // Already authenticated — skip QR entirely
-    if (status === 'WORKING') {
-      return res.json({ csmId: csm.id, sessionName, alreadyConnected: true });
-    }
+    // Wire up webhook so WAHA notifies this app
+    const webhookUrl = `${process.env.APP_URL}/webhooks/waha`;
+    await waha.setWebhook(sessionName, webhookUrl);
 
-    // QR is already on screen — just fetch it
-    if (status === 'SCAN_QR_CODE') {
-      const qrDataUrl = await waha.fetchQRBase64(sessionName, 5);
-      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-    }
-
-    // Session exists but is stopped — just start it
-    if (status === 'STOPPED') {
-      await waha.startSession(sessionName);
-      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-    }
-
-    // Session doesn't exist — create and start atomically
-    if (status === 'NOT_FOUND') {
-      await waha.createAndStartSession(sessionName);
-      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-    }
-
-    // STARTING — wait for QR
-    if (status === 'STARTING') {
-      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-    }
-
-    // FAILED or unknown — restart
-    await waha.restartSession(sessionName);
-    const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-    return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-
+    logger.info({ email, sessionName }, 'CSM registered');
+    return res.json({ csmId: csm.id, sessionName });
   } catch (err) {
-    logger.error({ err: err.message, stack: err.stack }, 'register failed');
+    logger.error({ err: err.message }, 'register failed');
     return res.status(500).json({ error: err.message });
   }
 });
 
-router.get('/status/:sessionName', async (req, res) => {
-  try {
-    const status = await waha.getSessionStatus(req.params.sessionName);
-    return res.json({ connected: status === 'WORKING', status });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
+// Step 2 — Poll for QR code / connection status
+// GET /api/onboard/qr/:sessionName
 router.get('/qr/:sessionName', async (req, res) => {
   try {
-    const qr = await waha.fetchQRBase64(req.params.sessionName, 3);
-    return res.json({ qr: qr || null });
+    const { sessionName } = req.params;
+    const status = await waha.getSessionStatus(sessionName);
+    logger.info({ sessionName, wahaStatus: status }, 'QR poll');
+
+    if (status === 'WORKING') {
+      return res.json({ status: 'connected' });
+    }
+
+    if (status === 'SCAN_QR_CODE') {
+      const qr = await waha.getQRCode(sessionName);
+      logger.info({ sessionName, hasQR: !!qr }, 'QR fetch result');
+      if (qr) return res.json({ status: 'qr_ready', qr });
+      return res.json({ status: 'loading' });
+    }
+
+    logger.info({ sessionName, wahaStatus: status }, 'QR poll — unexpected status');
+    return res.json({ status: status.toLowerCase() });
   } catch (err) {
+    logger.error({ err: err.message }, 'QR poll error');
     return res.status(500).json({ error: err.message });
   }
 });
 
+// Step 3 — List WhatsApp groups for CSM to choose
+// GET /api/onboard/groups/:sessionName
 router.get('/groups/:sessionName', async (req, res) => {
   try {
-    // Retry up to 4 times — WAHA NOWEB needs a moment to sync chats after connect
-    let groups = [];
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      groups = await waha.getGroups(req.params.sessionName);
-      if (groups.length > 0) break;
-      if (attempt < 4) {
-        logger.info({ attempt }, 'No groups yet — waiting 3s for WAHA sync');
-        await new Promise(r => setTimeout(r, 3000));
-      }
-    }
+    const groups = await waha.getGroups(req.params.sessionName);
     return res.json(groups);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
+// Step 3b — Save selected groups
+// POST /api/onboard/groups
 router.post('/groups', async (req, res) => {
   try {
     const { csmId, groups } = req.body;
-    if (!csmId || !groups?.length)
-      return res.status(400).json({ error: 'csmId and groups[] required' });
+    if (!csmId || !groups?.length) {
+      return res.status(400).json({ error: 'csmId and groups[] are required' });
+    }
     await db.saveMonitoredGroups(csmId, groups);
-    return res.json({ ok: true });
+    return res.json({ ok: true, saved: groups.length });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
+// Step 4 — Save Slack details and complete setup
+// POST /api/onboard/complete
 router.post('/complete', async (req, res) => {
   try {
-    const { csmId, slackUserId, managerSlackId, managerName } = req.body;
-    if (!csmId || !slackUserId)
-      return res.status(400).json({ error: 'csmId and slackUserId required' });
-    await db.updateCSMSlack(csmId, { slackUserId, managerSlackId, managerName });
+    const { csmId, slackUserId, managerSlackId, managerName, role, reportees } = req.body;
+    if (!csmId || !slackUserId) {
+      return res.status(400).json({ error: 'csmId and slackUserId are required' });
+    }
+    if (role && !['csm', 'manager'].includes(role)) {
+      return res.status(400).json({ error: 'role must be "csm" or "manager"' });
+    }
+    await db.updateCSMSlack(csmId, {
+      slackUserId,
+      managerSlackId: managerSlackId || null,
+      managerName: managerName || null,
+      role: role || 'csm',
+      reportees: Array.isArray(reportees) ? reportees : []
+    });
     return res.json({ ok: true });
   } catch (err) {
+    logger.error({ err: err.message }, 'complete failed');
     return res.status(500).json({ error: err.message });
   }
 });
