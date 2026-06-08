@@ -17,7 +17,7 @@ async function createSession(sessionName) {
     logger.info({ sessionName }, 'WAHA session created');
   } catch (err) {
     if (err.response?.status === 422) {
-      logger.info({ sessionName }, 'WAHA session already exists — continuing');
+      logger.info({ sessionName }, 'WAHA session already exists');
       return;
     }
     throw new Error(`createSession: ${err.response?.data?.message || err.message}`);
@@ -31,31 +31,53 @@ async function startSession(sessionName) {
   } catch (err) {
     const msg = err.response?.data?.message || err.message || '';
     if (msg.toLowerCase().includes('already started') || err.response?.status === 422) {
-      logger.info({ sessionName }, 'WAHA session already running — continuing');
+      logger.info({ sessionName }, 'WAHA session already running');
       return;
     }
     throw new Error(`startSession: ${msg}`);
   }
 }
 
-// Returns: STOPPED | STARTING | SCAN_QR_CODE | WORKING | FAILED
 async function getSessionStatus(sessionName) {
   try {
     const { data } = await waha.get(`/api/sessions/${sessionName}`);
-    logger.info({ sessionName, status: data.status }, 'WAHA session status');
-    return data.status;
+    return data.status; // STOPPED | STARTING | SCAN_QR_CODE | WORKING | FAILED
   } catch (err) {
     if (err.response?.status === 404) return 'STOPPED';
     throw new Error(`getSessionStatus: ${err.message}`);
   }
 }
 
-// Returns a direct WAHA URL the browser can use as an <img src>
-// WAHA accepts the API key as a ?key= query param so no auth header needed
-function getQRCodeUrl(sessionName) {
-  const base = process.env.WAHA_BASE_URL;
-  const key  = process.env.WAHA_API_KEY;
-  return `${base}/api/${sessionName}/auth/qr?format=image&key=${key}`;
+// Fetch QR as base64 PNG — retries up to maxAttempts times waiting for WAHA to be ready
+async function fetchQRBase64(sessionName, maxAttempts = 10) {
+  for (let i = 1; i <= maxAttempts; i++) {
+    try {
+      const { data } = await waha.get(`/api/${sessionName}/auth/qr`, {
+        params: { format: 'image' },
+        responseType: 'arraybuffer'
+      });
+      if (data && data.byteLength > 500) {
+        logger.info({ sessionName, attempt: i }, 'QR fetched as binary image');
+        return `data:image/png;base64,${Buffer.from(data).toString('base64')}`;
+      }
+    } catch (e1) {
+      // binary failed — try JSON format
+      try {
+        const { data } = await waha.get(`/api/${sessionName}/auth/qr`);
+        if (data?.value) {
+          logger.info({ sessionName, attempt: i }, 'QR fetched as JSON value');
+          const val = data.value;
+          return val.startsWith('data:') ? val : `data:image/png;base64,${val}`;
+        }
+      } catch (e2) { /* not ready yet */ }
+    }
+
+    if (i < maxAttempts) {
+      logger.info({ sessionName, attempt: i }, 'QR not ready — waiting 2s');
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  return null;
 }
 
 async function getGroups(sessionName) {
@@ -76,13 +98,12 @@ async function stopSession(sessionName) {
   try {
     await waha.post(`/api/sessions/${sessionName}/stop`);
     await waha.delete(`/api/sessions/${sessionName}`);
-    logger.info({ sessionName }, 'WAHA session stopped');
   } catch (err) {
-    logger.warn({ sessionName, err: err.message }, 'stopSession error (may be OK)');
+    logger.warn({ sessionName, err: err.message }, 'stopSession error');
   }
 }
 
 module.exports = {
   createSession, startSession, getSessionStatus,
-  getQRCodeUrl, getGroups, stopSession
+  fetchQRBase64, getGroups, stopSession
 };

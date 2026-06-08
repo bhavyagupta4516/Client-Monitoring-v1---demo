@@ -8,41 +8,20 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f4f8;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      background: #f0f4f8; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
     }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 40px 44px;
-      max-width: 540px;
-      width: 100%;
-      box-shadow: 0 4px 32px rgba(0,0,0,0.08);
-    }
+    .card { background: #fff; border-radius: 16px; padding: 40px 44px; max-width: 540px; width: 100%; box-shadow: 0 4px 32px rgba(0,0,0,0.08); }
     .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
-    .brand-icon { width: 36px; height: 36px; background: #25d366; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .brand-icon { width: 36px; height: 36px; background: #25d366; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .brand-name { font-size: 18px; font-weight: 700; color: #1a1a2e; }
 
-    .progress { display: flex; align-items: center; gap: 0; margin-bottom: 32px; }
+    .progress { display: flex; align-items: center; margin-bottom: 32px; }
     .progress-step { display: flex; flex-direction: column; align-items: center; flex: 1; }
-    .progress-dot {
-      width: 28px; height: 28px; border-radius: 50%;
-      border: 2px solid #e0e0e0; background: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; color: #999;
-      position: relative; z-index: 1;
-    }
+    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #e0e0e0; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #999; position: relative; z-index: 1; }
     .progress-dot.active { border-color: #25d366; background: #25d366; color: #fff; }
     .progress-dot.done { border-color: #128c7e; background: #128c7e; color: #fff; }
-    .progress-line {
-      flex: 1; height: 2px; background: #e0e0e0;
-      margin: 0 -1px; position: relative; top: -14px;
-    }
+    .progress-line { flex: 1; height: 2px; background: #e0e0e0; margin: 0 -1px; position: relative; top: -14px; }
     .progress-line.done { background: #128c7e; }
     .progress-label { font-size: 10px; color: #999; margin-top: 4px; white-space: nowrap; }
     .progress-label.active { color: #25d366; font-weight: 600; }
@@ -50,51 +29,20 @@
 
     h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
     .subtitle { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
-
     label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 5px; margin-top: 18px; }
     .hint { font-size: 12px; color: #888; font-weight: 400; margin-top: 3px; }
-    input[type=text], input[type=email], input[type=tel] {
-      width: 100%; padding: 11px 14px;
-      border: 1.5px solid #e0e0e0; border-radius: 9px;
-      font-size: 14px; outline: none; transition: border-color 0.2s;
-    }
+    input[type=text], input[type=email], input[type=tel] { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 9px; font-size: 14px; outline: none; transition: border-color 0.2s; }
     input:focus { border-color: #25d366; box-shadow: 0 0 0 3px rgba(37,211,102,0.12); }
     .optional { font-weight: 400; color: #aaa; font-size: 11px; }
-
-    .btn {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 13px;
-      background: #25d366; color: #fff;
-      border: none; border-radius: 10px;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      margin-top: 28px; transition: background 0.2s;
-    }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; background: #25d366; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 28px; transition: background 0.2s; }
     .btn:hover { background: #1fba59; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
-    .btn-outline { background: #fff; color: #25d366; border: 2px solid #25d366; }
-    .btn-outline:hover { background: #f0fff6; }
-
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2.5px solid rgba(255,255,255,0.4);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.65s linear infinite;
-    }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.65s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* QR step */
-    .qr-box {
-      background: #f9f9f9; border: 1.5px dashed #ddd;
-      border-radius: 12px; padding: 28px;
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
-      min-height: 240px; justify-content: center;
-    }
-    .qr-box img { width: 200px; height: 200px; border-radius: 8px; }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 20px;
-      font-size: 13px; font-weight: 600;
-    }
+    .qr-box { background: #f9f9f9; border: 1.5px dashed #ddd; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: 260px; justify-content: center; }
+    .qr-box img { width: 200px; height: 200px; border-radius: 8px; display: block; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
     .pill-loading { background: #f0f0f0; color: #666; }
     .pill-waiting { background: #fff3cd; color: #856404; }
     .pill-connected { background: #d4edda; color: #155724; }
@@ -102,36 +50,20 @@
     .pulse { display: inline-block; animation: pulse 1.2s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    /* Group list */
-    .search-box {
-      width: 100%; padding: 9px 14px;
-      border: 1.5px solid #e0e0e0; border-radius: 9px;
-      font-size: 14px; outline: none; margin-bottom: 8px;
-    }
+    .search-box { width: 100%; padding: 9px 14px; border: 1.5px solid #e0e0e0; border-radius: 9px; font-size: 14px; outline: none; margin-bottom: 8px; }
     .search-box:focus { border-color: #25d366; }
-    .group-list {
-      border: 1.5px solid #e8e8e8; border-radius: 10px;
-      max-height: 260px; overflow-y: auto;
-    }
-    .group-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 11px 16px; cursor: pointer;
-      border-bottom: 1px solid #f5f5f5; transition: background 0.1s;
-    }
+    .group-list { border: 1.5px solid #e8e8e8; border-radius: 10px; max-height: 260px; overflow-y: auto; }
+    .group-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid #f5f5f5; transition: background 0.1s; }
     .group-item:last-child { border-bottom: none; }
     .group-item:hover { background: #f9fff9; }
     .group-item input { width: 16px; height: 16px; accent-color: #25d366; cursor: pointer; }
-    .group-item-name { font-size: 14px; color: #333; flex: 1; }
     .group-count { font-size: 12px; color: #25d366; font-weight: 600; margin-top: 6px; }
     .group-empty { padding: 24px; text-align: center; color: #888; font-size: 14px; }
-
-    /* Success step */
     .success-wrap { text-align: center; padding: 8px 0; }
     .success-icon { font-size: 52px; margin-bottom: 12px; }
-
-    /* Steps show/hide */
     .step { display: none; }
     .step.active { display: block; }
+    .error-msg { color: #d32f2f; font-size: 13px; margin-top: 10px; min-height: 20px; }
   </style>
 </head>
 <body>
@@ -141,121 +73,74 @@
     <div class="brand-name">WA Monitor</div>
   </div>
 
-  <!-- Progress bar -->
   <div class="progress">
-    <div class="progress-step">
-      <div class="progress-dot active" id="pd1">1</div>
-      <div class="progress-label active" id="pl1">Details</div>
-    </div>
+    <div class="progress-step"><div class="progress-dot active" id="pd1">1</div><div class="progress-label active" id="pl1">Details</div></div>
     <div class="progress-line" id="line1"></div>
-    <div class="progress-step">
-      <div class="progress-dot" id="pd2">2</div>
-      <div class="progress-label" id="pl2">Connect</div>
-    </div>
+    <div class="progress-step"><div class="progress-dot" id="pd2">2</div><div class="progress-label" id="pl2">Connect</div></div>
     <div class="progress-line" id="line2"></div>
-    <div class="progress-step">
-      <div class="progress-dot" id="pd3">3</div>
-      <div class="progress-label" id="pl3">Groups</div>
-    </div>
+    <div class="progress-step"><div class="progress-dot" id="pd3">3</div><div class="progress-label" id="pl3">Groups</div></div>
     <div class="progress-line" id="line3"></div>
-    <div class="progress-step">
-      <div class="progress-dot" id="pd4">4</div>
-      <div class="progress-label" id="pl4">Alerts</div>
-    </div>
+    <div class="progress-step"><div class="progress-dot" id="pd4">4</div><div class="progress-label" id="pl4">Alerts</div></div>
     <div class="progress-line" id="line4"></div>
-    <div class="progress-step">
-      <div class="progress-dot" id="pd5">5</div>
-      <div class="progress-label" id="pl5">Done</div>
-    </div>
+    <div class="progress-step"><div class="progress-dot" id="pd5">5</div><div class="progress-label" id="pl5">Done</div></div>
   </div>
 
-  <!-- Step 1: Your Details -->
+  <!-- Step 1 -->
   <div class="step active" id="step1">
     <h1>Set up WA Monitor</h1>
-    <p class="subtitle">Enter your details. This takes about 2 minutes and only needs to be done once.</p>
-
+    <p class="subtitle">Enter your details. Takes about 2 minutes — done once.</p>
     <label>Full Name</label>
-    <input type="text" id="name" placeholder="Riya Sharma" autocomplete="name" />
-
+    <input type="text" id="name" placeholder="Riya Sharma" />
     <label>Work Email</label>
-    <input type="email" id="email" placeholder="riya@limechat.ai" autocomplete="email" />
-
-    <label>
-      WhatsApp Phone Number
-      <div class="hint">Include country code, no spaces or dashes — e.g. 919876543210</div>
-    </label>
+    <input type="email" id="email" placeholder="riya@limechat.ai" />
+    <label>WhatsApp Phone Number<div class="hint">Country code + number, digits only — e.g. 919876543210</div></label>
     <input type="tel" id="phone" placeholder="919876543210" />
-
-    <button class="btn" id="btn-register" onclick="submitDetails()">
-      Continue <span>→</span>
-    </button>
-    <div id="step1-error" style="color:#d32f2f;font-size:13px;margin-top:10px;"></div>
+    <button class="btn" id="btn-register" onclick="submitDetails()">Continue →</button>
+    <div class="error-msg" id="step1-error"></div>
   </div>
 
-  <!-- Step 2: Scan QR -->
+  <!-- Step 2 -->
   <div class="step" id="step2">
     <h1>Connect WhatsApp</h1>
-    <p class="subtitle">
-      On your phone: open WhatsApp → tap <strong>⋮</strong> (Android) or <strong>Settings</strong> (iPhone) → <strong>Linked Devices</strong> → <strong>Link a Device</strong> → scan the code below.
-    </p>
-
+    <p class="subtitle">On your phone: open WhatsApp → tap <strong>⋮</strong> (Android) or <strong>Settings</strong> (iPhone) → <strong>Linked Devices</strong> → <strong>Link a Device</strong> → scan below.</p>
     <div class="qr-box" id="qr-box">
-      <div class="status-pill pill-loading">
-        <span class="pulse">⏳</span> Loading QR code...
-      </div>
+      <div class="status-pill pill-loading"><span class="pulse">⏳</span> Loading QR code…</div>
     </div>
-    <p style="font-size:12px;color:#888;text-align:center;margin-top:10px;">
-      QR expires every 60 seconds — it refreshes automatically.
-    </p>
+    <p style="font-size:12px;color:#888;text-align:center;margin-top:10px">QR refreshes automatically every 50 seconds.</p>
   </div>
 
-  <!-- Step 3: Select Groups -->
+  <!-- Step 3 -->
   <div class="step" id="step3">
     <h1>Select Groups to Monitor</h1>
-    <p class="subtitle">Choose the WhatsApp groups where your clients message you. You can add more later.</p>
-
-    <input type="text" class="search-box" id="group-search" placeholder="Search groups..." oninput="filterGroups()" />
-    <div class="group-list" id="group-list">
-      <div class="group-empty">Loading your groups...</div>
-    </div>
+    <p class="subtitle">Choose WhatsApp groups where your clients message you.</p>
+    <input type="text" class="search-box" id="group-search" placeholder="Search groups…" oninput="filterGroups()" />
+    <div class="group-list" id="group-list"><div class="group-empty">Loading groups…</div></div>
     <div class="group-count" id="group-count"></div>
-
     <button class="btn" onclick="saveGroups()">Save & Continue →</button>
-    <div id="step3-error" style="color:#d32f2f;font-size:13px;margin-top:10px;"></div>
+    <div class="error-msg" id="step3-error"></div>
   </div>
 
-  <!-- Step 4: Slack Alerts -->
+  <!-- Step 4 -->
   <div class="step" id="step4">
     <h1>Alert Settings</h1>
-    <p class="subtitle">Where should we send Slack alerts for SLA breaches and urgent messages?</p>
-
-    <label>
-      Your Slack Member ID
-      <div class="hint">In Slack: click your name → Profile → ⋮ menu → "Copy member ID". Starts with U0…</div>
-    </label>
+    <p class="subtitle">Where should Slack alerts go?</p>
+    <label>Your Slack Member ID<div class="hint">In Slack: click your name → Profile → ⋮ → "Copy member ID". Starts with U0…</div></label>
     <input type="text" id="slack-id" placeholder="U0123456789" />
-
     <label>Manager's Slack Member ID <span class="optional">(optional)</span></label>
     <input type="text" id="manager-slack-id" placeholder="U0987654321" />
-
     <label>Manager's Name <span class="optional">(optional)</span></label>
     <input type="text" id="manager-name" placeholder="Sanjay Mehta" />
-
     <button class="btn" onclick="completeSetup()">Finish Setup →</button>
-    <div id="step4-error" style="color:#d32f2f;font-size:13px;margin-top:10px;"></div>
+    <div class="error-msg" id="step4-error"></div>
   </div>
 
-  <!-- Step 5: Done -->
+  <!-- Step 5 -->
   <div class="step" id="step5">
     <div class="success-wrap">
       <div class="success-icon">🎉</div>
       <h1>You're all set!</h1>
-      <p class="subtitle" style="margin-top:8px;">
-        WA Monitor is now watching your groups. You'll get Slack DMs for SLA breaches, urgent messages, and daily briefings.
-      </p>
-      <a id="dashboard-link" href="/dashboard" class="btn" style="text-decoration:none; margin-top:24px;">
-        Go to Dashboard →
-      </a>
+      <p class="subtitle" style="margin-top:8px">WA Monitor is watching your groups. You'll get Slack alerts for SLA breaches, urgent messages, and daily briefings.</p>
+      <a id="dashboard-link" href="/dashboard" class="btn" style="text-decoration:none;margin-top:24px">Go to Dashboard →</a>
     </div>
   </div>
 </div>
@@ -263,10 +148,9 @@
 <script>
   let csmId = null;
   let sessionName = null;
-  let qrInterval = null;
+  let statusInterval = null;
+  let qrRefreshInterval = null;
   let allGroups = [];
-
-  // ── Step navigation ────────────────────────────────────────────────────────
 
   function goTo(n) {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -274,17 +158,22 @@
     for (let i = 1; i <= 5; i++) {
       const dot = document.getElementById('pd' + i);
       const lbl = document.getElementById('pl' + i);
-      if (i < n)       { dot.className = 'progress-dot done'; lbl.className = 'progress-label done'; }
-      else if (i === n) { dot.className = 'progress-dot active'; lbl.className = 'progress-label active'; }
-      else              { dot.className = 'progress-dot'; lbl.className = 'progress-label'; }
+      dot.className = i < n ? 'progress-dot done' : i === n ? 'progress-dot active' : 'progress-dot';
+      lbl.className = i < n ? 'progress-label done' : i === n ? 'progress-label active' : 'progress-label';
     }
     for (let i = 1; i <= 4; i++) {
-      const line = document.getElementById('line' + i);
-      line.className = i < n ? 'progress-line done' : 'progress-line';
+      document.getElementById('line' + i).className = i < n ? 'progress-line done' : 'progress-line';
     }
   }
 
-  // ── Step 1: Register ────────────────────────────────────────────────────────
+  function showQR(dataUrl) {
+    document.getElementById('qr-box').innerHTML = `
+      <img src="${dataUrl}" alt="Scan this QR with WhatsApp" onerror="this.parentElement.innerHTML='<div class=\\'status-pill pill-error\\'>⚠️ QR failed to load — refreshing…</div>'" />
+      <div class="status-pill pill-waiting"><span class="pulse">👀</span> Waiting for scan…</div>
+    `;
+  }
+
+  // ── Step 1 ─────────────────────────────────────────────────────────────────
 
   async function submitDetails() {
     const name  = document.getElementById('name').value.trim();
@@ -293,18 +182,12 @@
     const errEl = document.getElementById('step1-error');
     errEl.textContent = '';
 
-    if (!name || !email || !phone) {
-      errEl.textContent = 'Please fill in all three fields.';
-      return;
-    }
-    if (!/^\d{10,15}$/.test(phone)) {
-      errEl.textContent = 'Phone must be digits only with country code, e.g. 919876543210';
-      return;
-    }
+    if (!name || !email || !phone) { errEl.textContent = 'Please fill in all fields.'; return; }
+    if (!/^\d{10,15}$/.test(phone)) { errEl.textContent = 'Phone: digits only with country code, e.g. 919876543210'; return; }
 
     const btn = document.getElementById('btn-register');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Setting up…';
+    btn.innerHTML = '<span class="spinner"></span> Setting up… (may take 20s)';
 
     try {
       const res = await fetch('/api/onboard/register', {
@@ -317,8 +200,23 @@
 
       csmId = data.csmId;
       sessionName = data.sessionName;
+
       goTo(2);
-      startQRPolling();
+
+      // Show QR immediately if register returned it
+      if (data.qrDataUrl) {
+        showQR(data.qrDataUrl);
+      } else {
+        document.getElementById('qr-box').innerHTML =
+          '<div class="status-pill pill-loading"><span class="pulse">⏳</span> QR generating — check back in 10s…</div>';
+      }
+
+      // Poll for connected status every 3s
+      startStatusPolling();
+
+      // Refresh QR every 50s (QR expires in 60s)
+      qrRefreshInterval = setInterval(refreshQR, 50000);
+
     } catch (err) {
       errEl.textContent = err.message;
       btn.disabled = false;
@@ -326,41 +224,31 @@
     }
   }
 
-  // ── Step 2: QR polling ──────────────────────────────────────────────────────
-
-  function setQRBox(html) {
-    document.getElementById('qr-box').innerHTML = html;
-  }
-
-  function startQRPolling() {
-    setQRBox('<div class="status-pill pill-loading"><span class="pulse">⏳</span> Connecting to WhatsApp…</div>');
-
-    qrInterval = setInterval(async () => {
+  function startStatusPolling() {
+    statusInterval = setInterval(async () => {
       try {
-        const res = await fetch('/api/onboard/qr/' + sessionName);
+        const res = await fetch('/api/onboard/status/' + sessionName);
         const data = await res.json();
-
-        if (data.status === 'connected') {
-          clearInterval(qrInterval);
-          setQRBox('<div class="status-pill pill-connected">✅ Connected!</div>');
+        if (data.connected) {
+          clearInterval(statusInterval);
+          clearInterval(qrRefreshInterval);
+          document.getElementById('qr-box').innerHTML =
+            '<div class="status-pill pill-connected">✅ Connected!</div>';
           setTimeout(() => { goTo(3); loadGroups(); }, 1000);
-
-        } else if (data.status === 'qr_ready' && data.qr) {
-          setQRBox(`
-            <img src="${data.qr}" alt="Scan with WhatsApp" />
-            <div class="status-pill pill-waiting"><span class="pulse">👀</span> Waiting for scan…</div>
-          `);
-
-        } else {
-          setQRBox('<div class="status-pill pill-loading"><span class="pulse">⏳</span> Preparing QR code…</div>');
         }
-      } catch (e) {
-        setQRBox('<div class="status-pill pill-error">⚠️ Connection error — retrying…</div>');
-      }
+      } catch (e) { /* retry next tick */ }
     }, 3000);
   }
 
-  // ── Step 3: Groups ──────────────────────────────────────────────────────────
+  async function refreshQR() {
+    try {
+      const res = await fetch('/api/onboard/qr/' + sessionName);
+      const data = await res.json();
+      if (data.qr) showQR(data.qr);
+    } catch (e) { /* keep showing old QR */ }
+  }
+
+  // ── Step 3 ─────────────────────────────────────────────────────────────────
 
   async function loadGroups() {
     try {
@@ -381,8 +269,8 @@
     }
     list.innerHTML = groups.map(g => `
       <label class="group-item">
-        <input type="checkbox" value="${g.group_jid}" data-name="${escHtml(g.group_name)}" onchange="updateCount()" />
-        <span class="group-item-name">${escHtml(g.group_name)}</span>
+        <input type="checkbox" value="${g.group_jid}" data-name="${esc(g.group_name)}" onchange="updateCount()" />
+        <span>${esc(g.group_name)}</span>
       </label>
     `).join('');
   }
@@ -400,53 +288,35 @@
   async function saveGroups() {
     const checked = [...document.querySelectorAll('#group-list input:checked')];
     const errEl = document.getElementById('step3-error');
-    errEl.textContent = '';
-
-    if (!checked.length) {
-      errEl.textContent = 'Please select at least one group to monitor.';
-      return;
-    }
-
+    if (!checked.length) { errEl.textContent = 'Select at least one group.'; return; }
     const groups = checked.map(cb => ({ group_jid: cb.value, group_name: cb.dataset.name }));
     await fetch('/api/onboard/groups', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csmId, groups })
     });
     goTo(4);
   }
 
-  // ── Step 4: Slack ───────────────────────────────────────────────────────────
+  // ── Step 4 ─────────────────────────────────────────────────────────────────
 
   async function completeSetup() {
     const slackUserId = document.getElementById('slack-id').value.trim();
     const errEl = document.getElementById('step4-error');
-    errEl.textContent = '';
-
-    if (!slackUserId) {
-      errEl.textContent = 'Please enter your Slack Member ID.';
-      return;
-    }
-
+    if (!slackUserId) { errEl.textContent = 'Please enter your Slack Member ID.'; return; }
     await fetch('/api/onboard/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        csmId,
-        slackUserId,
+        csmId, slackUserId,
         managerSlackId: document.getElementById('manager-slack-id').value.trim() || null,
         managerName:    document.getElementById('manager-name').value.trim() || null
       })
     });
-
     document.getElementById('dashboard-link').href = '/dashboard?csm=' + csmId;
     goTo(5);
   }
 
-  // ── Utility ─────────────────────────────────────────────────────────────────
-
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 </script>
 </body>
