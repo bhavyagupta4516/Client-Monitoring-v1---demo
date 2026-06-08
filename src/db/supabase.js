@@ -12,7 +12,10 @@ const supabase = createClient(
 async function createCSM({ name, email, phone, wahaSession }) {
   const { data, error } = await supabase
     .from('csms')
-    .insert({ name, email, phone, waha_session: wahaSession })
+    .upsert(
+      { name, email, phone, waha_session: wahaSession },
+      { onConflict: 'email', ignoreDuplicates: false }
+    )
     .select()
     .single();
   if (error) throw new Error(`createCSM: ${error.message}`);

@@ -33,7 +33,13 @@ async function startSession(sessionName) {
     await waha.post(`/api/sessions/${sessionName}/start`);
     logger.info({ sessionName }, 'WAHA session started');
   } catch (err) {
-    throw new Error(`startSession: ${err.response?.data?.message || err.message}`);
+    const msg = err.response?.data?.message || err.message || '';
+    // If session is already running, that is fine — just continue
+    if (msg.toLowerCase().includes('already started') || err.response?.status === 422) {
+      logger.info({ sessionName }, 'WAHA session already running — continuing');
+      return;
+    }
+    throw new Error(`startSession: ${msg}`);
   }
 }
 
