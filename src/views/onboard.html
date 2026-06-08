@@ -113,7 +113,10 @@
   <div class="step" id="step3">
     <h1>Select Groups to Monitor</h1>
     <p class="subtitle">Choose WhatsApp groups where your clients message you.</p>
-    <input type="text" class="search-box" id="group-search" placeholder="Search groups…" oninput="filterGroups()" />
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" class="search-box" id="group-search" placeholder="Search groups…" oninput="filterGroups()" style="margin:0;flex:1" />
+      <button onclick="loadGroups(true)" id="refresh-btn" style="padding:9px 16px;border:1.5px solid #e0e0e0;border-radius:9px;background:#fff;font-size:13px;cursor:pointer;white-space:nowrap">↻ Refresh</button>
+    </div>
     <div class="group-list" id="group-list"><div class="group-empty">Loading groups…</div></div>
     <div class="group-count" id="group-count"></div>
     <button class="btn" onclick="saveGroups()">Save & Continue →</button>
@@ -257,14 +260,23 @@
 
   // ── Step 3 ─────────────────────────────────────────────────────────────────
 
-  async function loadGroups() {
+  async function loadGroups(manual = false) {
+    const list = document.getElementById('group-list');
+    const btn  = document.getElementById('refresh-btn');
+    list.innerHTML = '<div class="group-empty">Loading groups… (may take up to 15 seconds after first connect)</div>';
+    if (btn) btn.disabled = true;
     try {
       const res = await fetch('/api/onboard/groups/' + sessionName);
       allGroups = await res.json();
       renderGroups(allGroups);
+      if (allGroups.length === 0 && !manual) {
+        // Auto-retry once more after 5s on first load
+        setTimeout(() => loadGroups(false), 5000);
+      }
     } catch (e) {
-      document.getElementById('group-list').innerHTML =
-        '<div class="group-empty">Failed to load groups. Please refresh.</div>';
+      list.innerHTML = '<div class="group-empty">⚠️ Failed to load — click ↻ Refresh to try again.</div>';
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 

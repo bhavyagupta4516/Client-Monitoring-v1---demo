@@ -37,7 +37,7 @@ async function createAndStartSession(sessionName) {
     await client.post('/api/sessions', {
       name: sessionName,
       start: true,
-      config: { noweb: { store: { enabled: true, fullSync: false } } }
+      config: { noweb: { store: { enabled: true, fullSync: true } } }
     });
     logger.info({ sessionName }, 'Session created+started');
   } catch (err) {

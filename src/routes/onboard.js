@@ -93,7 +93,17 @@ router.get('/qr/:sessionName', async (req, res) => {
 
 router.get('/groups/:sessionName', async (req, res) => {
   try {
-    return res.json(await waha.getGroups(req.params.sessionName));
+    // Retry up to 4 times — WAHA NOWEB needs a moment to sync chats after connect
+    let groups = [];
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      groups = await waha.getGroups(req.params.sessionName);
+      if (groups.length > 0) break;
+      if (attempt < 4) {
+        logger.info({ attempt }, 'No groups yet — waiting 3s for WAHA sync');
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+    return res.json(groups);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
