@@ -15,7 +15,11 @@ router.post('/register', async (req, res) => {
     }
 
     // Build a safe session name from email prefix
-    const sessionName = 'default'; // WAHA Core free tier only supports 'default' session
+    const sessionName = 'csm_' + email
+      .split('@')[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 20);
 
     // Create CSM record in DB
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
@@ -24,7 +28,9 @@ router.post('/register', async (req, res) => {
     await waha.createSession(sessionName);
     await waha.startSession(sessionName);
 
-    // Webhook is configured globally via WHATSAPP_HOOK_URL env var on WAHA service
+    // Wire up webhook so WAHA notifies this app
+    const webhookUrl = `${process.env.APP_URL}/webhooks/waha`;
+    await waha.setWebhook(sessionName, webhookUrl);
 
     logger.info({ email, sessionName }, 'CSM registered');
     return res.json({ csmId: csm.id, sessionName });
@@ -40,6 +46,7 @@ router.get('/qr/:sessionName', async (req, res) => {
   try {
     const { sessionName } = req.params;
     const status = await waha.getSessionStatus(sessionName);
+    logger.info({ sessionName, wahaStatus: status }, 'QR poll');
 
     if (status === 'WORKING') {
       return res.json({ status: 'connected' });
@@ -47,12 +54,15 @@ router.get('/qr/:sessionName', async (req, res) => {
 
     if (status === 'SCAN_QR_CODE') {
       const qr = await waha.getQRCode(sessionName);
+      logger.info({ sessionName, hasQR: !!qr }, 'QR fetch result');
       if (qr) return res.json({ status: 'qr_ready', qr });
-      return res.json({ status: 'loading' }); // QR not rendered yet
+      return res.json({ status: 'loading' });
     }
 
+    logger.info({ sessionName, wahaStatus: status }, 'QR poll — unexpected status');
     return res.json({ status: status.toLowerCase() });
   } catch (err) {
+    logger.error({ err: err.message }, 'QR poll error');
     return res.status(500).json({ error: err.message });
   }
 });
