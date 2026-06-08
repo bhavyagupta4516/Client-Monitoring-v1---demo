@@ -5,6 +5,16 @@ const db = require('../db/supabase');
 const waha = require('../waha/client');
 const logger = require('../logger');
 
+/**
+ * POST /api/onboard/register
+ *
+ * State machine for WAHA session:
+ *   WORKING       → already connected, skip QR
+ *   SCAN_QR_CODE  → QR already generated, just fetch it (no wipe needed)
+ *   STARTING      → wait for QR to appear
+ *   STOPPED       → create + start fresh
+ *   FAILED/other  → delete + recreate + start
+ */
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
@@ -15,31 +25,45 @@ router.post('/register', async (req, res) => {
     const sessionName = 'default';
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
 
-    // Check what state the existing session is in
-    const currentStatus = await waha.getSessionStatus(sessionName);
-    logger.info({ sessionName, currentStatus }, 'Session status on register');
+    const status = await waha.getSessionStatus(sessionName);
+    logger.info({ sessionName, status }, 'Session state on register');
 
-    if (currentStatus === 'WORKING') {
-      // Already connected — skip QR, go straight to group selection
-      logger.info({ sessionName }, 'Session already WORKING — skipping QR');
+    // ── Already connected ────────────────────────────────────────────────────
+    if (status === 'WORKING') {
+      logger.info('Session WORKING — skipping QR');
       return res.json({ csmId: csm.id, sessionName, alreadyConnected: true });
     }
 
-    // If session exists in a broken/stale state, wipe it and start fresh
-    if (currentStatus !== 'STOPPED') {
-      logger.info({ sessionName, currentStatus }, 'Wiping stale session');
-      await waha.stopSession(sessionName);
-      await new Promise(r => setTimeout(r, 2000)); // let WAHA clean up
+    // ── QR already on screen — just fetch it ────────────────────────────────
+    if (status === 'SCAN_QR_CODE') {
+      logger.info('Session SCAN_QR_CODE — fetching existing QR');
+      const qrDataUrl = await waha.fetchQRBase64(sessionName, 5);
+      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
     }
 
-    // Create and start a clean session
+    // ── Still starting — wait for QR ────────────────────────────────────────
+    if (status === 'STARTING') {
+      logger.info('Session STARTING — waiting for QR');
+      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
+      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
+    }
+
+    // ── Session is STOPPED — create and start fresh ──────────────────────────
+    if (status === 'STOPPED') {
+      logger.info('Session STOPPED — creating fresh');
+      await waha.createSession(sessionName);
+      await waha.startSession(sessionName);
+      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
+      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
+    }
+
+    // ── FAILED or unknown — delete and recreate ──────────────────────────────
+    logger.info({ status }, 'Session in bad state — deleting and recreating');
+    await waha.deleteSession(sessionName);
+    await new Promise(r => setTimeout(r, 3000)); // wait for WAHA to clean up
     await waha.createSession(sessionName);
     await waha.startSession(sessionName);
-
-    // Wait for WAHA to generate QR (up to 20s)
     const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-
-    logger.info({ email, hasQR: !!qrDataUrl, status: currentStatus }, 'CSM registered');
     return res.json({ csmId: csm.id, sessionName, qrDataUrl });
 
   } catch (err) {
@@ -51,7 +75,6 @@ router.post('/register', async (req, res) => {
 router.get('/status/:sessionName', async (req, res) => {
   try {
     const status = await waha.getSessionStatus(req.params.sessionName);
-    logger.info({ sessionName: req.params.sessionName, status }, 'status poll');
     return res.json({ connected: status === 'WORKING', status });
   } catch (err) {
     return res.status(500).json({ error: err.message });
