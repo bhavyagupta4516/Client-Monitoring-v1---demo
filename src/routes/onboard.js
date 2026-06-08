@@ -15,11 +15,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Build a safe session name from email prefix
-    const sessionName = 'csm_' + email
-      .split('@')[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .slice(0, 20);
+    const sessionName = 'default'; // WAHA Core free tier only supports 'default' session
 
     // Create CSM record in DB
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
