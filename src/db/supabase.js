@@ -14,7 +14,7 @@ async function createCSM({ name, email, phone, wahaSession }) {
     .from('csms')
     .upsert(
       { name, email, phone, waha_session: wahaSession },
-      { onConflict: 'email', ignoreDuplicates: false }
+      { onConflict: 'waha_session', ignoreDuplicates: false }
     )
     .select()
     .single();
