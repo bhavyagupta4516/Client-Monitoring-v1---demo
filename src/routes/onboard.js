@@ -5,11 +5,6 @@ const db = require('../db/supabase');
 const waha = require('../waha/client');
 const logger = require('../logger');
 
-/**
- * POST /api/onboard/register
- * Creates the CSM, starts WAHA session, waits for QR, returns it as base64.
- * Frontend gets everything it needs in one response — no QR polling required.
- */
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
@@ -18,22 +13,33 @@ router.post('/register', async (req, res) => {
     }
 
     const sessionName = 'default';
-
-    // Upsert CSM — safe to call multiple times
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
 
-    // Start WAHA session (both calls are idempotent)
+    // Check what state the existing session is in
+    const currentStatus = await waha.getSessionStatus(sessionName);
+    logger.info({ sessionName, currentStatus }, 'Session status on register');
+
+    if (currentStatus === 'WORKING') {
+      // Already connected — skip QR, go straight to group selection
+      logger.info({ sessionName }, 'Session already WORKING — skipping QR');
+      return res.json({ csmId: csm.id, sessionName, alreadyConnected: true });
+    }
+
+    // If session exists in a broken/stale state, wipe it and start fresh
+    if (currentStatus !== 'STOPPED') {
+      logger.info({ sessionName, currentStatus }, 'Wiping stale session');
+      await waha.stopSession(sessionName);
+      await new Promise(r => setTimeout(r, 2000)); // let WAHA clean up
+    }
+
+    // Create and start a clean session
     await waha.createSession(sessionName);
     await waha.startSession(sessionName);
 
-    // Wait up to 20s for WAHA to generate the QR code
+    // Wait for WAHA to generate QR (up to 20s)
     const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
 
-    if (!qrDataUrl) {
-      logger.warn({ sessionName }, 'QR not ready after 20s — returning without it');
-    }
-
-    logger.info({ email, hasQR: !!qrDataUrl }, 'CSM registered');
+    logger.info({ email, hasQR: !!qrDataUrl, status: currentStatus }, 'CSM registered');
     return res.json({ csmId: csm.id, sessionName, qrDataUrl });
 
   } catch (err) {
@@ -42,10 +48,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-/**
- * GET /api/onboard/status/:sessionName
- * Lightweight poll — just checks if WhatsApp is connected yet.
- */
 router.get('/status/:sessionName', async (req, res) => {
   try {
     const status = await waha.getSessionStatus(req.params.sessionName);
@@ -56,23 +58,15 @@ router.get('/status/:sessionName', async (req, res) => {
   }
 });
 
-/**
- * GET /api/onboard/qr/:sessionName
- * Refresh the QR image (called every 50s since QR expires in 60s).
- */
 router.get('/qr/:sessionName', async (req, res) => {
   try {
     const qrDataUrl = await waha.fetchQRBase64(req.params.sessionName, 3);
-    if (!qrDataUrl) return res.json({ qr: null });
-    return res.json({ qr: qrDataUrl });
+    return res.json({ qr: qrDataUrl || null });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-/**
- * GET /api/onboard/groups/:sessionName
- */
 router.get('/groups/:sessionName', async (req, res) => {
   try {
     const groups = await waha.getGroups(req.params.sessionName);
@@ -82,9 +76,6 @@ router.get('/groups/:sessionName', async (req, res) => {
   }
 });
 
-/**
- * POST /api/onboard/groups
- */
 router.post('/groups', async (req, res) => {
   try {
     const { csmId, groups } = req.body;
@@ -98,9 +89,6 @@ router.post('/groups', async (req, res) => {
   }
 });
 
-/**
- * POST /api/onboard/complete
- */
 router.post('/complete', async (req, res) => {
   try {
     const { csmId, slackUserId, managerSlackId, managerName } = req.body;

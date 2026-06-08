@@ -201,14 +201,21 @@
       csmId = data.csmId;
       sessionName = data.sessionName;
 
+      if (data.alreadyConnected) {
+        // WhatsApp already connected from a previous session — skip QR
+        goTo(3);
+        loadGroups();
+        return;
+      }
+
       goTo(2);
 
-      // Show QR immediately if register returned it
+      // Show QR immediately — register waits up to 20s for it
       if (data.qrDataUrl) {
         showQR(data.qrDataUrl);
       } else {
         document.getElementById('qr-box').innerHTML =
-          '<div class="status-pill pill-loading"><span class="pulse">⏳</span> QR generating — check back in 10s…</div>';
+          '<div class="status-pill pill-loading"><span class="pulse">⏳</span> QR generating — please wait 10s then refresh…</div>';
       }
 
       // Poll for connected status every 3s
