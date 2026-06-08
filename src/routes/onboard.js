@@ -6,68 +6,69 @@ const waha = require('../waha/client');
 const logger = require('../logger');
 
 /**
+ * GET /api/onboard/debug
+ * Shows raw WAHA state — use this to diagnose issues
+ */
+router.get('/debug', async (_req, res) => {
+  const raw = await waha.getRawSession('default');
+  const status = raw ? raw.status : 'NOT_FOUND';
+  res.json({ status, raw });
+});
+
+/**
  * POST /api/onboard/register
- *
- * State machine for WAHA session:
- *   WORKING       → already connected, skip QR
- *   SCAN_QR_CODE  → QR already generated, just fetch it (no wipe needed)
- *   STARTING      → wait for QR to appear
- *   STOPPED       → create + start fresh
- *   FAILED/other  → delete + recreate + start
+ * Smart session management — never blindly deletes, handles every state.
  */
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    if (!name || !email || !phone) {
-      return res.status(400).json({ error: 'name, email, and phone are required' });
-    }
+    if (!name || !email || !phone)
+      return res.status(400).json({ error: 'name, email and phone required' });
 
     const sessionName = 'default';
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
-
     const status = await waha.getSessionStatus(sessionName);
-    logger.info({ sessionName, status }, 'Session state on register');
 
-    // ── Already connected ────────────────────────────────────────────────────
+    logger.info({ email, status }, 'Register — WAHA session state');
+
+    // Already authenticated — skip QR entirely
     if (status === 'WORKING') {
-      logger.info('Session WORKING — skipping QR');
       return res.json({ csmId: csm.id, sessionName, alreadyConnected: true });
     }
 
-    // ── QR already on screen — just fetch it ────────────────────────────────
+    // QR is already on screen — just fetch it
     if (status === 'SCAN_QR_CODE') {
-      logger.info('Session SCAN_QR_CODE — fetching existing QR');
       const qrDataUrl = await waha.fetchQRBase64(sessionName, 5);
       return res.json({ csmId: csm.id, sessionName, qrDataUrl });
     }
 
-    // ── Still starting — wait for QR ────────────────────────────────────────
-    if (status === 'STARTING') {
-      logger.info('Session STARTING — waiting for QR');
-      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
-      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
-    }
-
-    // ── Session is STOPPED — create and start fresh ──────────────────────────
+    // Session exists but is stopped — just start it
     if (status === 'STOPPED') {
-      logger.info('Session STOPPED — creating fresh');
-      await waha.createSession(sessionName);
       await waha.startSession(sessionName);
       const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
       return res.json({ csmId: csm.id, sessionName, qrDataUrl });
     }
 
-    // ── FAILED or unknown — delete and recreate ──────────────────────────────
-    logger.info({ status }, 'Session in bad state — deleting and recreating');
-    await waha.deleteSession(sessionName);
-    await new Promise(r => setTimeout(r, 3000)); // wait for WAHA to clean up
-    await waha.createSession(sessionName);
-    await waha.startSession(sessionName);
+    // Session doesn't exist — create and start atomically
+    if (status === 'NOT_FOUND') {
+      await waha.createAndStartSession(sessionName);
+      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
+      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
+    }
+
+    // STARTING — wait for QR
+    if (status === 'STARTING') {
+      const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
+      return res.json({ csmId: csm.id, sessionName, qrDataUrl });
+    }
+
+    // FAILED or unknown — restart
+    await waha.restartSession(sessionName);
     const qrDataUrl = await waha.fetchQRBase64(sessionName, 10);
     return res.json({ csmId: csm.id, sessionName, qrDataUrl });
 
   } catch (err) {
-    logger.error({ err: err.message }, 'register failed');
+    logger.error({ err: err.message, stack: err.stack }, 'register failed');
     return res.status(500).json({ error: err.message });
   }
 });
@@ -83,8 +84,8 @@ router.get('/status/:sessionName', async (req, res) => {
 
 router.get('/qr/:sessionName', async (req, res) => {
   try {
-    const qrDataUrl = await waha.fetchQRBase64(req.params.sessionName, 3);
-    return res.json({ qr: qrDataUrl || null });
+    const qr = await waha.fetchQRBase64(req.params.sessionName, 3);
+    return res.json({ qr: qr || null });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -92,8 +93,7 @@ router.get('/qr/:sessionName', async (req, res) => {
 
 router.get('/groups/:sessionName', async (req, res) => {
   try {
-    const groups = await waha.getGroups(req.params.sessionName);
-    return res.json(groups);
+    return res.json(await waha.getGroups(req.params.sessionName));
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -102,11 +102,10 @@ router.get('/groups/:sessionName', async (req, res) => {
 router.post('/groups', async (req, res) => {
   try {
     const { csmId, groups } = req.body;
-    if (!csmId || !groups?.length) {
-      return res.status(400).json({ error: 'csmId and groups[] are required' });
-    }
+    if (!csmId || !groups?.length)
+      return res.status(400).json({ error: 'csmId and groups[] required' });
     await db.saveMonitoredGroups(csmId, groups);
-    return res.json({ ok: true, saved: groups.length });
+    return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -115,9 +114,8 @@ router.post('/groups', async (req, res) => {
 router.post('/complete', async (req, res) => {
   try {
     const { csmId, slackUserId, managerSlackId, managerName } = req.body;
-    if (!csmId || !slackUserId) {
-      return res.status(400).json({ error: 'csmId and slackUserId are required' });
-    }
+    if (!csmId || !slackUserId)
+      return res.status(400).json({ error: 'csmId and slackUserId required' });
     await db.updateCSMSlack(csmId, { slackUserId, managerSlackId, managerName });
     return res.json({ ok: true });
   } catch (err) {
