@@ -6,7 +6,6 @@ const waha = require('../waha/client');
 const logger = require('../logger');
 
 // Step 1 — Register CSM and create WAHA session
-// POST /api/onboard/register
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
@@ -14,23 +13,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'name, email, and phone are required' });
     }
 
-    // Build a safe session name from email prefix
-    const sessionName = 'csm_' + email
-      .split('@')[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .slice(0, 20);
+    const sessionName = 'default'; // WAHA Core free tier only supports 'default' session
 
-    // Create CSM record in DB
     const csm = await db.createCSM({ name, email, phone, wahaSession: sessionName });
-
-    // Create and start WAHA session
     await waha.createSession(sessionName);
     await waha.startSession(sessionName);
 
-    // Wire up webhook so WAHA notifies this app
-    const webhookUrl = `${process.env.APP_URL}/webhooks/waha`;
-    await waha.setWebhook(sessionName, webhookUrl);
+    // Webhook is configured globally via WHATSAPP_HOOK_URL env var on WAHA service
 
     logger.info({ email, sessionName }, 'CSM registered');
     return res.json({ csmId: csm.id, sessionName });
@@ -40,35 +29,32 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Step 2 — Poll for QR code / connection status
-// GET /api/onboard/qr/:sessionName
+// Step 2 — Poll session status + return QR URL for browser to load directly
 router.get('/qr/:sessionName', async (req, res) => {
   try {
     const { sessionName } = req.params;
     const status = await waha.getSessionStatus(sessionName);
-    logger.info({ sessionName, wahaStatus: status }, 'QR poll');
+    logger.info({ sessionName, status }, 'QR poll');
 
     if (status === 'WORKING') {
       return res.json({ status: 'connected' });
     }
 
-    if (status === 'SCAN_QR_CODE') {
-      const qr = await waha.getQRCode(sessionName);
-      logger.info({ sessionName, hasQR: !!qr }, 'QR fetch result');
-      if (qr) return res.json({ status: 'qr_ready', qr });
-      return res.json({ status: 'loading' });
+    if (status === 'SCAN_QR_CODE' || status === 'STARTING') {
+      // Return a direct URL — the browser fetches the QR image straight from WAHA
+      const qrUrl = waha.getQRCodeUrl(sessionName);
+      return res.json({ status: 'qr_ready', qr: qrUrl });
     }
 
-    logger.info({ sessionName, wahaStatus: status }, 'QR poll — unexpected status');
-    return res.json({ status: status.toLowerCase() });
+    logger.info({ sessionName, status }, 'QR poll — unexpected status');
+    return res.json({ status: status ? status.toLowerCase() : 'loading' });
   } catch (err) {
     logger.error({ err: err.message }, 'QR poll error');
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Step 3 — List WhatsApp groups for CSM to choose
-// GET /api/onboard/groups/:sessionName
+// Step 3 — List WhatsApp groups
 router.get('/groups/:sessionName', async (req, res) => {
   try {
     const groups = await waha.getGroups(req.params.sessionName);
@@ -79,7 +65,6 @@ router.get('/groups/:sessionName', async (req, res) => {
 });
 
 // Step 3b — Save selected groups
-// POST /api/onboard/groups
 router.post('/groups', async (req, res) => {
   try {
     const { csmId, groups } = req.body;
@@ -93,8 +78,7 @@ router.post('/groups', async (req, res) => {
   }
 });
 
-// Step 4 — Save Slack details and complete setup
-// POST /api/onboard/complete
+// Step 4 — Save Slack details
 router.post('/complete', async (req, res) => {
   try {
     const { csmId, slackUserId, managerSlackId, managerName } = req.body;
