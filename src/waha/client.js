@@ -34,7 +34,6 @@ async function startSession(sessionName) {
     logger.info({ sessionName }, 'WAHA session started');
   } catch (err) {
     const msg = err.response?.data?.message || err.message || '';
-    // If session is already running, that is fine — just continue
     if (msg.toLowerCase().includes('already started') || err.response?.status === 422) {
       logger.info({ sessionName }, 'WAHA session already running — continuing');
       return;
@@ -54,19 +53,38 @@ async function getSessionStatus(sessionName) {
   }
 }
 
-// Returns a base64 PNG data URI, or null if QR isn't ready yet
+// Returns a base64 PNG data URI, or null if QR is not ready yet
 async function getQRCode(sessionName) {
+  // Approach 1: WAHA NOWEB returns JSON { value: 'data:image/png;base64,...' }
+  try {
+    const { data } = await waha.get(`/api/${sessionName}/auth/qr`);
+    if (data?.value) {
+      const val = data.value;
+      if (val.startsWith('data:')) return val;
+      return `data:image/png;base64,${val}`;
+    }
+  } catch (err) {
+    if (err.response?.status !== 404 && err.response?.status !== 422) {
+      logger.warn({ sessionName, err: err.message }, 'getQRCode JSON fetch failed');
+    }
+  }
+
+  // Approach 2: fallback — fetch as binary PNG
   try {
     const { data } = await waha.get(`/api/${sessionName}/auth/qr`, {
       params: { format: 'image' },
       responseType: 'arraybuffer'
     });
-    return `data:image/png;base64,${Buffer.from(data).toString('base64')}`;
+    if (data && data.byteLength > 100) {
+      return `data:image/png;base64,${Buffer.from(data).toString('base64')}`;
+    }
   } catch (err) {
-    if (err.response?.status === 404 || err.response?.status === 422) return null;
-    logger.warn({ sessionName, err: err.message }, 'getQRCode failed');
-    return null;
+    if (err.response?.status !== 404 && err.response?.status !== 422) {
+      logger.warn({ sessionName, err: err.message }, 'getQRCode binary fetch failed');
+    }
   }
+
+  return null;
 }
 
 // Returns array of { group_jid, group_name }
