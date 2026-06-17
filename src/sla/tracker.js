@@ -68,10 +68,19 @@ function startEODBrief() {
           ? Math.floor(answered.reduce((s, m) => s + m.response_time_s, 0) / answered.length / 60)
           : 0;
 
+        // A real breach = still pending AND past its SLA deadline — not just "pending and not low urgency".
+        // SLA window here matches createSLATimer() in db/supabase.js (fixed 1 hour). If that ever
+        // becomes configurable per CSM, this constant must be updated to match.
+        const now = Date.now();
+        const SLA_MS = 60 * 60 * 1000;
+        const breaches = messages.filter(m =>
+          m.status === 'pending' && (now - new Date(m.received_at).getTime()) > SLA_MS
+        ).length;
+
         await slack.sendEODBrief(csm, {
           total: messages.length,
           answered: answered.length,
-          breaches: messages.filter(m => m.status === 'pending' && m.urgency !== 'low').length,
+          breaches,
           open: messages.filter(m => m.status === 'pending').length,
           avgResponseMin
         });

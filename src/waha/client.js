@@ -10,51 +10,27 @@ function wahaClient() {
   });
 }
 
-// Get raw session object from WAHA — returns null if not found
-async function getRawSession(sessionName) {
+// Create a new session in WAHA (does NOT start it — onboard.js calls startSession separately)
+async function createSession(sessionName) {
   try {
-    const { data } = await wahaClient().get(`/api/sessions/${sessionName}`);
-    return data;
-  } catch (err) {
-    if (err.response?.status === 404) return null;
-    logger.warn({ err: err.response?.data || err.message }, 'getRawSession error');
-    return null;
-  }
-}
-
-// Returns: NOT_FOUND | STOPPED | STARTING | SCAN_QR_CODE | WORKING | FAILED
-async function getSessionStatus(sessionName) {
-  const session = await getRawSession(sessionName);
-  const status = session ? (session.status || 'UNKNOWN') : 'NOT_FOUND';
-  logger.info({ sessionName, status, raw: session }, 'getSessionStatus');
-  return status;
-}
-
-// Create session — pass start:true so WAHA starts it atomically (no race condition)
-async function createAndStartSession(sessionName) {
-  const client = wahaClient();
-  try {
-    await client.post('/api/sessions', {
+    await wahaClient().post('/api/sessions', {
       name: sessionName,
-      start: true,
       config: { noweb: { store: { enabled: true, fullSync: true } } }
     });
-    logger.info({ sessionName }, 'Session created+started');
+    logger.info({ sessionName }, 'WAHA session created');
   } catch (err) {
     if (err.response?.status === 422) {
-      // Session already exists — just start it
-      logger.info({ sessionName }, 'Session exists — starting');
-      await startSession(sessionName);
+      logger.info({ sessionName }, 'WAHA session already exists — continuing');
       return;
     }
-    throw new Error(`createAndStartSession: ${err.response?.data?.message || err.message}`);
+    throw new Error(`createSession: ${err.response?.data?.message || err.message}`);
   }
 }
 
 async function startSession(sessionName) {
   try {
     await wahaClient().post(`/api/sessions/${sessionName}/start`);
-    logger.info({ sessionName }, 'Session started');
+    logger.info({ sessionName }, 'WAHA session started');
   } catch (err) {
     const msg = err.response?.data?.message || err.message || '';
     if (msg.toLowerCase().includes('already started') || err.response?.status === 422) {
@@ -65,50 +41,49 @@ async function startSession(sessionName) {
   }
 }
 
-async function restartSession(sessionName) {
+async function getSessionStatus(sessionName) {
   try {
-    await wahaClient().post(`/api/sessions/${sessionName}/restart`);
-    logger.info({ sessionName }, 'Session restarted');
+    const { data } = await wahaClient().get(`/api/sessions/${sessionName}`);
+    return data?.status || 'UNKNOWN';
   } catch (err) {
-    // restart endpoint may not exist — fallback to stop+start
-    logger.warn({ err: err.message }, 'restart failed — trying stop+start');
-    try { await wahaClient().post(`/api/sessions/${sessionName}/stop`); } catch(_) {}
-    await new Promise(r => setTimeout(r, 2000));
-    await startSession(sessionName);
+    if (err.response?.status === 404) return 'NOT_FOUND';
+    logger.warn({ sessionName, err: err.message }, 'getSessionStatus error');
+    return 'UNKNOWN';
   }
 }
 
-// Fetch QR as base64 — retries every 2s up to maxAttempts times
-async function fetchQRBase64(sessionName, maxAttempts = 10) {
-  const client = wahaClient();
-  for (let i = 1; i <= maxAttempts; i++) {
-    // Try binary PNG
-    try {
-      const { data } = await client.get(`/api/${sessionName}/auth/qr`, {
-        params: { format: 'image' }, responseType: 'arraybuffer'
-      });
-      if (data && data.byteLength > 500) {
-        logger.info({ sessionName, attempt: i }, 'QR fetched (binary)');
-        return `data:image/png;base64,${Buffer.from(data).toString('base64')}`;
-      }
-    } catch (_) {}
-
-    // Try JSON value
-    try {
-      const { data } = await client.get(`/api/${sessionName}/auth/qr`);
-      if (data?.value) {
-        logger.info({ sessionName, attempt: i }, 'QR fetched (JSON)');
-        return data.value.startsWith('data:') ? data.value : `data:image/png;base64,${data.value}`;
-      }
-    } catch (_) {}
-
-    if (i < maxAttempts) {
-      logger.info({ attempt: i }, 'QR not ready — waiting 2s');
-      await new Promise(r => setTimeout(r, 2000));
+async function getQRCode(sessionName) {
+  try {
+    const { data } = await wahaClient().get(`/api/${sessionName}/auth/qr`, {
+      params: { format: 'image' },
+      responseType: 'arraybuffer'
+    });
+    if (data && data.byteLength > 500) {
+      return `data:image/png;base64,${Buffer.from(data).toString('base64')}`;
     }
+    return null;
+  } catch (err) {
+    if (err.response?.status === 404 || err.response?.status === 422) return null;
+    logger.warn({ sessionName, err: err.message }, 'getQRCode failed');
+    return null;
   }
-  logger.warn({ sessionName }, 'QR not available after all attempts');
-  return null;
+}
+
+async function setWebhook(sessionName, webhookUrl) {
+  try {
+    await wahaClient().put(`/api/sessions/${sessionName}`, {
+      config: {
+        webhooks: [{
+          url: webhookUrl,
+          events: ['message', 'session.status'],
+          retries: { delaySeconds: 2, attempts: 3 }
+        }]
+      }
+    });
+    logger.info({ sessionName, webhookUrl }, 'WAHA webhook configured');
+  } catch (err) {
+    throw new Error(`setWebhook: ${err.response?.data?.message || err.message}`);
+  }
 }
 
 async function getGroups(sessionName) {
@@ -125,8 +100,17 @@ async function getGroups(sessionName) {
   }
 }
 
+async function stopSession(sessionName) {
+  try {
+    await wahaClient().post(`/api/sessions/${sessionName}/stop`);
+    await wahaClient().delete(`/api/sessions/${sessionName}`);
+    logger.info({ sessionName }, 'WAHA session stopped');
+  } catch (err) {
+    logger.warn({ sessionName, err: err.message }, 'stopSession error (may be OK if already stopped)');
+  }
+}
+
 module.exports = {
-  getRawSession, getSessionStatus,
-  createAndStartSession, startSession, restartSession,
-  fetchQRBase64, getGroups
+  createSession, startSession, getSessionStatus,
+  getQRCode, setWebhook, getGroups, stopSession
 };

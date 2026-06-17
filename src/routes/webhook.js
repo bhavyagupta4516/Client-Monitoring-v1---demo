@@ -55,7 +55,9 @@ async function handleEvent({ event, session, payload }) {
     }
 
     // Only care about group messages (JID ends in @g.us)
-    const groupJid = msg.to || msg.from;
+    // NOTE: msg.from is the group/chat JID; msg.to is the session's own JID — using msg.to first
+    // silently dropped every group message because session JID never ends in @g.us.
+    const groupJid = msg.from;
     if (!groupJid?.endsWith('@g.us')) return;
 
     // Find the CSM who owns this session

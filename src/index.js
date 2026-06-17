@@ -7,7 +7,7 @@ const logger = require('./logger');
 const { startSLAChecker, startMorningBrief, startEODBrief } = require('./sla/tracker');
 
 // Validate critical env vars at startup — fail fast with a clear message
-const REQUIRED = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'WAHA_BASE_URL', 'WAHA_API_KEY', 'SLACK_BOT_TOKEN'];
+const REQUIRED = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'WAHA_BASE_URL', 'WAHA_API_KEY', 'SLACK_BOT_TOKEN', 'APP_URL'];
 const missing = REQUIRED.filter(k => !process.env[k]);
 if (missing.length) {
   console.error(`[FATAL] Missing env vars: ${missing.join(', ')}`);
